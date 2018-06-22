@@ -19,7 +19,8 @@ import {
   View,
   StatusBar,
   Image,
-  BackHandler
+  BackHandler,
+  Text
 } from 'react-native';
 
 import {observable,action} from 'mobx';
@@ -113,6 +114,7 @@ export default class AwaitMeManagePage extends PureComponent{
                               marginTop:150,
                           }}
                       />
+                      <Text>此功能正在加急开发中,请稍等</Text>
                   </View>
                 </View>
           }

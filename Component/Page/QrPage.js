@@ -21,7 +21,9 @@ import {
   Image,
   TouchableOpacity,
   StatusBar,
-  BackHandler
+  BackHandler,
+  Animated,
+  Easing
 } from 'react-native';
 
 
@@ -122,7 +124,20 @@ export default class QrPage extends PureComponent{
               lazyLoading:true
           })
       },600)
+      this.animate()
+  }
 
+  animatedValue = new Animated.Value(0)
+  animate () {
+    this.animatedValue.setValue(0)
+    Animated.timing(
+      this.animatedValue,
+      {
+        toValue: 1,
+        duration: 4000,
+        easing: Easing.linear,
+      }
+    ).start(() => this.animate())
   }
 
   //扫描成功时的回调
@@ -176,6 +191,10 @@ export default class QrPage extends PureComponent{
 
 
   render() {
+    const marginTop = this.animatedValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, 250]
+    })
     return (
         <View
             style={{
@@ -217,6 +236,15 @@ export default class QrPage extends PureComponent{
                                     borderWidth:1,
                                 }}
                             >
+                                <Animated.Image
+                                    style={{
+                                        width:236,
+                                        height:2,
+                                        marginLeft:7,
+                                        marginTop:marginTop,
+                                    }}
+                                    source={require('../../Icon/巡检页图标/QRLight.png')}
+                                />
                                 <View
                                     style={{
                                         position:'absolute',

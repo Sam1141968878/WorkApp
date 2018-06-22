@@ -19,7 +19,9 @@ import {
   View,
   TouchableOpacity,
   Image,
-  Dimensions
+  Dimensions,
+  Platform,
+  BackHandler
 } from 'react-native';
 
 import PublicHeader from '../PublicComponents/PublicHeader'
@@ -57,6 +59,16 @@ export default class AccountDetails extends PureComponent{
       })
   }
 
+  //监听安卓Back覆盖全局的监听安卓返回
+  _onThisBackAndroid=()=>{
+    return this.props.navigation.goBack()
+  }
+
+  componentWillMount() {
+      if (Platform.OS === 'android') {
+        BackHandler.addEventListener('hardwareBackPress', this._onThisBackAndroid);
+      }
+  }
 
 
 

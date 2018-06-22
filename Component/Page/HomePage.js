@@ -111,7 +111,7 @@ export default class HomePage extends Component{
   }
 
 
-
+  //下滑事件
   _onRefresh=()=>{
     this.setState({
         isRefreshing:true

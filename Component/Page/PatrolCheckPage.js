@@ -18,7 +18,9 @@ import {
   View,
   StatusBar,
   BackHandler,
-  Platform
+  Platform,
+  Animated,
+  Easing
 } from 'react-native';
 
 import PublicHeader from '../PublicComponents/PublicHeader'
@@ -94,7 +96,22 @@ export default class PatrolCheckPage extends PureComponent{
                 lazyLoading:false
             })
         },600)
+        this.animate()
     }
+
+  animatedValue = new Animated.Value(0)
+
+  animate () {
+    this.animatedValue.setValue(0)
+    Animated.timing(
+      this.animatedValue,
+      {
+        toValue: 1,
+        duration: 4000,
+        easing: Easing.linear,
+      }
+    ).start(() => this.animate())
+  }
 
   //扫描成功时的回调
   onSuccess(e) {
@@ -154,6 +171,10 @@ export default class PatrolCheckPage extends PureComponent{
 
   render() {
     const {goBack}=this.props;
+    const marginTop = this.animatedValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, 250],
+    })
     return (
         <View style={{flex:1}}>
             {
@@ -193,6 +214,15 @@ export default class PatrolCheckPage extends PureComponent{
                                     borderWidth:1,
                                 }}
                             >
+                                <Animated.Image
+                                    style={{
+                                        width:236,
+                                        height:2,
+                                        marginLeft:7,
+                                        marginTop:marginTop,
+                                    }}
+                                    source={require('../../Icon/巡检页图标/QRLight.png')}
+                                />
                                 <View
                                     style={{
                                         position:'absolute',

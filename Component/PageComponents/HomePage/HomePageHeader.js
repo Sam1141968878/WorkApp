@@ -73,8 +73,6 @@ export default class HomePageHeader extends PureComponent{
   componentWillReceiveProps(newProps) {
       this.setState({
         isRefreshing:newProps.isRefreshing
-      },()=>{
-        console.log(this.state.isRefreshing)
       })
 
       if(this.state.isRefreshing===true){

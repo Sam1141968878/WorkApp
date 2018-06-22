@@ -82,18 +82,18 @@ export default class ShiftWorkPageList extends PureComponent{
                         ?
                             <Text
                                 style={{
-                                  marginLeft:50,
+                                  marginLeft:80,
                                   marginTop:85
                                 }}
-                            >今日暂无值班任务</Text>
+                            >暂无值班任务</Text>
                         :
                             <View>
                                 <Text
                                     style={{
-                                      marginLeft:50,
+                                      marginLeft:70,
                                       marginTop:85
                                     }}
-                                >正在加载值班任务数据中</Text>
+                                >正在加载值班数据</Text>
                                 <ActivityIndicator/>
                             </View>
                     }

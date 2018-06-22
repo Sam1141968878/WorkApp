@@ -23,6 +23,7 @@ import {
   ScrollView,
   Text,
   BackHandler,
+  RefreshControl,
 } from 'react-native';
 
 import PublicHeader from '../PublicComponents/PublicHeader'
@@ -32,9 +33,10 @@ import {observable,action} from 'mobx';
 import {observer} from 'mobx-react';
 import NewGlobalStore from "../../GlobalStore/GlobalStore";
 import RedPigLoadingAnimation from '../AnimationComponent/RedPigLoadingAnimation'
-import { Calendar, CalendarList, Agenda,LocaleConfig } from 'react-native-calendars';
+import { Calendar, CalendarList, Agenda,LocaleConfig,Arrow  } from 'react-native-calendars';
 import realm from '../../RealmLocalStore/RealmLocalStore'
 import fetchPost from '../../Function/FetchPost'
+import Toast from 'teaset/components/Toast/Toast';
 
 
 LocaleConfig.locales['fr'] = {
@@ -46,35 +48,78 @@ LocaleConfig.locales['fr'] = {
 
 LocaleConfig.defaultLocale = 'fr';
 
-const vacation = {key:'vacation', color: '#88cfdd'};
-const massage = {key:'massage', color: '#7facdb'};
-const workout = {key:'workout', color: '#b8b3d8'};
-
-const DateData={
-    '2018-06-01': {dots: [vacation]},
-    '2018-06-18': {dots: [vacation]},
-    '2018-06-19': {dots: [vacation]},
-    '2018-06-20': {dots: [vacation]},
-    '2018-06-21': {dots: [vacation]}
-}
+const vacation = {key:'vacation', color: '#00ADF5'};
 
 const {height, width} = Dimensions.get('window');
 
 @observer
-export default class ShiftWorkPage extends PureComponent {
+export default class ShiftWorkPage extends Component {
 
     state = {
         lazyLoading: true,
+        onPressdateString:'2018-06-30',
         onPressDay: '',
         onPressMonth: '',
         onPressGetDay: '',
         showToday: false,
         openRightList: false,
-        markedDates:[]
+        Dates:[],
+        markedDates:{},
+        isRefreshing:false
     }
 
     TokenData = realm.objects('Token')
     UserInformationData = realm.objects('UserInformation')
+
+
+    //下滑事件
+    _onRefresh=()=>{
+      //下滑时重新更新值班任务数量
+      fetchPost(`http://${this.UserInformationData[0].serverParameters}/onduty`,
+          {
+            "access_token": this.TokenData[0].value,
+            "type": "dutylist_getdate_app",
+	        "date": "2018"
+          }
+      ).then((res)=>{
+          if(res.errcode==='00000'){
+              this.setState({
+                  Dates:res.datas
+              },()=>{
+                 const obj = this.state.Dates.reduce(
+                   (c, v) => Object.assign(c,
+                       {[v]: {
+                           selected:false,
+                           dots: [vacation],
+                           activeOpacity:1
+                       }}
+                   ), {}
+                 );
+                 this.setState({
+                   markedDates:obj
+                 },()=>{
+                    Toast.show({
+                      text: `值班任务数量更新成功`,
+                      position: 'bottom',
+                      duration: 2000,
+                    });
+                 })
+              })
+          }else{
+              console.log(res.errcode)
+          }
+      })
+
+      this.setState({
+          isRefreshing:true
+      },()=>{
+          setTimeout(()=>{
+              this.setState({
+                  isRefreshing:false
+              })
+          },1000)
+      })
+    }
 
     Addzero=(num)=>{
         if(num>10){
@@ -96,6 +141,7 @@ export default class ShiftWorkPage extends PureComponent {
     _onDayPress = (day) => {
         this.setState(
             {
+                onPressdateString:day.dateString,
                 onPressDay: day.day,
                 onPressMonth: day.month,
                 openRightList: true,
@@ -175,7 +221,7 @@ export default class ShiftWorkPage extends PureComponent {
                 if (nowDay === day.day&&nowMonth===day.month) {
                     this.setState(
                         {
-                            showToday: true
+                            showToday: true,
                         })
                 }
                 else {
@@ -184,6 +230,39 @@ export default class ShiftWorkPage extends PureComponent {
                             showToday: false
                         })
                 }
+
+
+                //点击让当前的日期变亮
+                //在点击变亮之前,先把所有的数组清回初始值,一次只保证一个变亮
+                const obj = this.state.Dates.reduce(
+                  (c, v) => Object.assign(c,
+                      {[v]: {
+                          selected:false,
+                          dots: [vacation],
+                          activeOpacity:1
+                      }}
+                  ), {}
+                );
+
+                this.setState({
+                  markedDates:obj
+                },()=>{
+                    //创建一个变亮的对象
+                    const selectedToday={[day.dateString]:{
+                            selected:true,
+                            dots: [vacation],
+                            activeOpacity:1
+                        },
+                    }
+
+
+                    //创建变亮对象集合并且用浅拷贝让其触发视图重新渲染
+                    const Obj=Object.assign(this.state.markedDates,selectedToday)
+                    const Obj1=Object.assign({},Obj)
+                    this.setState({
+                        markedDates:Obj1
+                    })
+                })
             }
         );
     }
@@ -205,10 +284,22 @@ export default class ShiftWorkPage extends PureComponent {
            }
        ).then((res)=>{
            if(res.errcode==='00000'){
-               this.state.markedDates
                this.setState({
-                   markedDates:res.datas
-               },()=>console.log(this.state.markedDates))
+                   Dates:res.datas
+               },()=>{
+                  const obj = this.state.Dates.reduce(
+                    (c, v) => Object.assign(c,
+                        {[v]: {
+                            selected:false,
+                            dots: [vacation],
+                            activeOpacity:1
+                        }}
+                    ), {}
+                  );
+                  this.setState({
+                    markedDates:obj
+                  })
+               })
            }else{
                console.log(res.errcode)
            }
@@ -238,18 +329,34 @@ export default class ShiftWorkPage extends PureComponent {
                         Title='值班任务'
                         goBack={goBack}
                     />
-                    <ScrollView style={{flex:1}}>
+                    <ScrollView
+                        style={{flex:1}}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={this.state.isRefreshing}
+                                onRefresh={this._onRefresh}
+                                colors={['#00ADF5']}
+                                progressBackgroundColor="#2250a9"
+                            />
+                        }
+                    >
                         <CalendarList
                           disableMonthChange={true}
                           pagingEnabled={true}
                           horizontal={true}
                           firstDay={1}
-                          hideArrows={false}
+                          hideArrows={true}
                           hideExtraDays={false}
                           onDayPress={this._onDayPress}
                           style={styles.calendar}
-                          markedDates={DateData}
+                          markedDates={this.state.markedDates}
                           markingType={'multi-dot'}
+                          theme={{
+                            selectedDayBackgroundColor: '#00ADF5',
+                            selectedDayTextColor: '#fff',
+                            todayTextColor: '#00ADF5',
+                            selectedDotColor: 'red',
+                          }}
                         />
                         <View
                             style={{
@@ -351,15 +458,28 @@ export default class ShiftWorkPage extends PureComponent {
                                 :
                                     <View
                                         style={{
-                                            minHeight:height-430
+                                            minHeight:height-430,
                                         }}
                                     >
-                                        <Text
+                                        <View
                                             style={{
-                                                marginTop:90,
-                                                fontSize:14
+                                                marginTop:80,
+                                                marginLeft:-20
                                             }}
-                                        >点击日历查看当前值班任务</Text>
+                                        >
+                                            <Text
+                                                style={{
+                                                    fontSize:14,
+                                                }}
+                                            >蓝色下标点代表当天有值班任务</Text>
+                                            <Text
+                                                style={{
+                                                    fontSize:14,
+                                                    marginTop:10,
+                                                }}
+                                            >  点击日历查看当天的值班任务</Text>
+                                        </View>
+
                                     </View>
                             }
                         </View>
